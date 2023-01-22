@@ -1,0 +1,52 @@
+##
+# To run this playbook first create the new user's (your_name) password:
+#    ansible-vault create --vault-id @prompt vault.yml 
+# in the host_vars/host directory and save the vault password in a password manager
+#
+# This should be the one and only time we would use the root user login to the server
+# have the password for the server ready and execute the following command and limit it to
+# the specifik server/host
+#
+# Change the password in the vault/vault.yml file.
+#    ansible-playbook -i inventory/hosts -e @vault/vault.yml --ask-vault-pass playbooks/setup-server.yml --limit host_name -C --ask-pass 
+#    
+##
+---
+- name: Prepping system
+  hosts: all
+  vars:
+    user: "{{ vault_user }}"
+    password: "{{ vault_password }}"
+  gather_facts: no
+  remote_user: root 
+  become: true
+  tasks:
+    - name: Add a new user
+      user:
+        name: "{{ user }}"
+        shell: /bin/bash
+        password: "{{ password | password_hash('sha512') }}"
+    # Add the user to sudoers
+    - name: Add '{{ user }}' user to the sudoers
+      copy:
+        dest: "/etc/sudoers.d/{{ user }}"
+        content: "{{ user }}  ALL=(ALL)  NOPASSWD: ALL"
+    # Submit public key
+    - name: Deploy SSH Key
+      authorized_key: 
+        user: "{{ user }}"
+        key: "{{ lookup('file', '/home/{{ user }}/.ssh/id_rsa.pub') }}"
+        state: present
+    # Disable root login
+    - name: Disable Root Login
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: "PermitRootLogin no"
+        state: present
+        backup: yes
+    # Restart SSH
+    - name: Restart SSH service
+      service:
+        name: ssh
+        state: restarted
