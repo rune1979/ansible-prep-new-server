@@ -8,7 +8,7 @@
 # the specifik server/host
 #
 # Change the password in the vault/vault.yml file.
-#    ansible-playbook -i inventory/hosts -e @vault/vault.yml --ask-vault-pass playbooks/setup-server.yml --limit host_name -C --ask-pass 
+#    ansible-playbook -i inventory/hosts -e @vault/vault.yml --ask-vault-pass playbooks/setup-server.yml --limit host_name --ask-pass 
 #    
 ##
 ---
